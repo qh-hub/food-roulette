@@ -51,6 +51,8 @@ h1{
   transition:all 0.15s;
 }
 .center-btn:active{transform:translate(-50%,-50%) scale(0.9)}
+.center-btn.spinning{animation:diceSpin 0.6s linear infinite}
+@keyframes diceSpin{0%{transform:translate(-50%,-50%) rotate(0deg)}100%{transform:translate(-50%,-50%) rotate(360deg)}}
 .badge{
   position:absolute;bottom:-4px;right:-4px;z-index:6;
   background:rgba(255,255,255,0.08);backdrop-filter:blur(10px);
@@ -342,6 +344,7 @@ function startSpin() {
   isSpinning = true;
   document.getElementById("ab").disabled = true;
   document.getElementById("rn").className = "result-name";
+  document.getElementById("sb").classList.add("spinning");
   document.getElementById("rn").textContent = "🎹 转动中...";
 
   var targetIdx = Math.floor(Math.random() * n);
@@ -365,6 +368,7 @@ function startSpin() {
       requestAnimationFrame(animate);
     } else {
       isSpinning = false;
+      document.getElementById("sb").classList.remove("spinning");
       document.getElementById("ab").disabled = false;
       var result = getSelected();
       document.getElementById("rn").textContent = result.name;
