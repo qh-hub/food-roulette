@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>今天吃什么 - 美食轮盘</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",-apple-system,BlinkMacSystemFont,sans-serif;
+  background:linear-gradient(135deg,#0a0a1a 0%,#1a1a3e 50%,#0d0d2b 100%);
+  min-height:100vh;min-height:100dvh;color:#fff;
+  display:flex;flex-direction:column;align-items:center;
+  padding:10px 10px 0;overflow-x:hidden;
+}
+.app{max-width:450px;width:100%;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
+h1{
+  font-size:24px;font-weight:800;letter-spacing:1px;
+  background:linear-gradient(135deg,#f093fb,#f5576c,#4facfe);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  padding:8px 0 2px;
+}
+.sub{font-size:12px;color:rgba(255,255,255,0.35);letter-spacing:1px;margin-bottom:2px}
+.wheel-wrap{
+  position:relative;width:min(80vw,380px);height:min(80vw,380px);
+  margin:0 auto 4px;flex-shrink:0;
+}
+#cv{
+  width:100%;height:100%;border-radius:50%;position:relative;z-index:1;
+  box-shadow:0 0 40px rgba(79,172,254,0.08),0 0 80px rgba(240,147,251,0.04);
+}
+.pointer{
+  position:absolute;top:-8px;left:50%;transform:translateX(-50%);z-index:10;
+  width:0;height:0;
+  border-left:14px solid transparent;border-right:14px solid transparent;
+  border-top:28px solid #ff4757;
+  filter:drop-shadow(0 2px 8px rgba(255,71,87,0.6));
+}
+.pointer::after{
+  content:"";position:absolute;top:-32px;left:-7px;
+  width:14px;height:14px;background:#ff4757;border-radius:50%;
+  box-shadow:0 0 10px rgba(255,71,87,0.5);
+}
+.center-btn{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:68px;height:68px;border-radius:50%;z-index:5;cursor:pointer;
+  background:radial-gradient(circle at 35% 35%,#2d2d5e,#15152a);
+  border:2px solid rgba(255,255,255,0.15);box-shadow:0 0 25px rgba(0,0,0,0.5);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;user-select:none;-webkit-tap-highlight-color:transparent;
+  transition:all 0.15s;
+}
+.center-btn:active{transform:translate(-50%,-50%) scale(0.9)}
+.badge{
+  position:absolute;bottom:-4px;right:-4px;z-index:6;
+  background:rgba(255,255,255,0.08);backdrop-filter:blur(10px);
+  padding:3px 10px;border-radius:20px;font-size:11px;
+  border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);
+}
+.btn-row{display:flex;gap:8px;width:100%;justify-content:center;flex-wrap:wrap;margin:2px 0}
+.btn-spin{
+  padding:10px 28px;font-size:15px;font-weight:700;border:none;border-radius:50px;
+  color:#fff;cursor:pointer;transition:all 0.25s;
+  letter-spacing:1px;user-select:none;-webkit-tap-highlight-color:transparent;
+  background:linear-gradient(135deg,#f093fb,#f5576c);
+  box-shadow:0 4px 20px rgba(245,87,108,0.3);flex:1;max-width:200px;
+}
+.btn-spin:hover{transform:translateY(-2px);box-shadow:0 6px 25px rgba(245,87,108,0.45)}
+.btn-spin:active{transform:translateY(0)}
+.btn-spin:disabled{opacity:0.35;cursor:not-allowed;transform:none;box-shadow:none}
+.result-card{
+  width:100%;padding:10px 16px;
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);
+  border-radius:16px;text-align:center;
+  backdrop-filter:blur(10px);min-height:48px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  margin:2px 0;
+}
+.result-label{font-size:11px;color:rgba(255,255,255,0.3);letter-spacing:2px;flex-shrink:0}
+.result-name{
+  font-size:20px;font-weight:700;
+  background:linear-gradient(135deg,#f093fb,#f5576c,#4facfe);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.result-name.pop{animation:popUp 0.5s cubic-bezier(.175,.885,.32,1.275)}
+@keyframes popUp{0%{transform:scale(0.3);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+.history-header{
+  width:100%;display:flex;align-items:center;justify-content:space-between;
+  padding:6px 2px 4px;
+}
+.history-title{font-size:13px;font-weight:600;color:rgba(255,255,255,0.5);letter-spacing:1px}
+.history-clear{
+  font-size:11px;color:rgba(255,255,255,0.25);cursor:pointer;
+  padding:3px 10px;border-radius:12px;border:1px solid rgba(255,255,255,0.06);
+  transition:all 0.2s;background:rgba(255,255,255,0.03);
+}
+.history-clear:hover{color:#ff6b6b;border-color:rgba(255,107,107,0.3)}
+.history-list{
+  width:100%;display:flex;flex-direction:column;gap:4px;
+  max-height:260px;overflow-y:auto;padding:0 2px;
+}
+.history-list::-webkit-scrollbar{width:3px}
+.history-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px}
+.history-empty{font-size:13px;color:rgba(255,255,255,0.2);padding:12px 0}
+.history-item{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.05);
+  border-radius:12px;cursor:pointer;transition:all 0.2s;
+  text-decoration:none;color:inherit;
+}
+.history-item:hover{
+  background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.1);
+  transform:translateX(4px);
+}
+.history-idx{font-size:11px;font-weight:600;color:rgba(255,255,255,0.2);min-width:24px;text-align:right}
+.history-name{font-size:14px;font-weight:500;flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.history-time{font-size:11px;color:rgba(255,255,255,0.2);flex-shrink:0}
+.history-link{font-size:13px;flex-shrink:0;opacity:0.5;transition:opacity 0.2s}
+.history-item:hover .history-link{opacity:1}
+.modal{
+  display:none;position:fixed;inset:0;z-index:999;
+  background:rgba(0,0,0,0.6);backdrop-filter:blur(16px);
+  align-items:center;justify-content:center;padding:24px;
+}
+.modal.show{display:flex}
+.modal-box{
+  background:linear-gradient(145deg,#1c1c42,#28285a);
+  border-radius:28px;padding:36px 32px 28px;max-width:360px;width:100%;
+  text-align:center;box-shadow:0 30px 80px rgba(0,0,0,0.6);
+  border:1px solid rgba(255,255,255,0.06);
+  animation:modalIn 0.4s cubic-bezier(.175,.885,.32,1.275);
+}
+@keyframes modalIn{0%{transform:scale(0.6) translateY(40px);opacity:0}100%{transform:scale(1) translateY(0);opacity:1}}
+.modal-emoji{font-size:52px;margin-bottom:8px}
+.modal-label{font-size:11px;color:rgba(255,255,255,0.35);letter-spacing:4px;text-transform:uppercase}
+.modal-name{font-size:28px;font-weight:800;margin:8px 0 16px;
+  background:linear-gradient(135deg,#f093fb,#f5576c,#4facfe);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.modal-link{
+  display:inline-block;padding:10px 28px;
+  background:rgba(79,172,254,0.1);color:#4facfe;
+  text-decoration:none;border-radius:50px;font-size:14px;
+  border:1px solid rgba(79,172,254,0.2);transition:all 0.3s;
+}
+.modal-link:hover{background:rgba(79,172,254,0.2)}
+.modal-actions{display:flex;gap:8px;justify-content:center;margin-top:16px}
+.modal-btn{
+  flex:1;padding:10px;border-radius:50px;border:1px solid rgba(255,255,255,0.1);
+  background:rgba(255,255,255,0.04);color:#fff;cursor:pointer;font-size:13px;transition:all 0.2s;
+}
+.modal-btn:hover{background:rgba(255,255,255,0.1)}
+.modal-btn.primary{background:linear-gradient(135deg,#f093fb,#f5576c);border:none;font-weight:700}
+@keyframes confettiFall{
+  0%{transform:translateY(0) rotate(0deg) scale(1);opacity:1}
+  100%{transform:translateY(100vh) rotate(900deg) scale(0.2);opacity:0}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>🍲 今天吃什么？</h1>
+  <div class="sub">↓ 转动轮盘，交给命运吧</div>
+  <div class="wheel-wrap">
+    <canvas id="cv"></canvas>
+    <div class="pointer"></div>
+    <div class="center-btn" id="sb">🎲</div>
+    <div class="badge" id="badge"></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn-spin" id="ab">🔄 转一次</button>
+  </div>
+  <div class="result-card">
+    <span class="result-label">🏆 结果</span>
+    <span class="result-name" id="rn">🎯 点击转动</span>
+  </div>
+  <div class="history-header">
+    <span class="history-title">📋 历史记录</span>
+    <span class="history-clear" id="hclr">🗑 清空</span>
+  </div>
+  <div class="history-list" id="hl">
+    <div class="history-empty">还没有记录，转一转吧 🎲</div>
+  </div>
+</div>
+<div class="modal" id="modal">
+  <div class="modal-box" id="modalBox">
+    <div class="modal-emoji" id="modalEmoji">🍲</div>
+    <div class="modal-label">🏆 今天吃</div>
+    <div class="modal-name" id="modalName"></div>
+    <a class="modal-link" id="modalLink" href="#" target="_blank">🔗 查看完整菜谱</a>
+    <div class="modal-actions">
+      <button class="modal-btn" id="closeBtn">🔙 关闭</button>
+      <button class="modal-btn primary" id="modalSpinAgain">🔄 再转一次</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var R=[{"cn":"排骨山药玉米汤","eng":"Pork Rib, Yam, and Corn Soup","id":"176"},{"cn":"玉米排骨汤","eng":"Corn and Pork Rib Soup","id":"180"},{"cn":"鱼香茄子","eng":"Fish-Flavored Eggplant","id":"342"},{"cn":"海边落日","eng":"Sunset by the sea","id":"240"},{"cn":"奥利奥冰淇淋","eng":"Oreo Ice Cream","id":"198"},{"cn":"牛排","eng":"Steak","id":"335"},{"cn":"酸梅汤","eng":"Sour Plum Drink (Semi-finished Product)","id":"53"},{"cn":"龟苓膏","eng":"Guilinggao","id":"190"},{"cn":"香煎五花肉","eng":"Pan-fried Pork Belly","id":"356"},{"cn":"韩式拌饭","eng":"Bibimbap","id":"293"},{"cn":"冰粉","eng":"Bingfen","id":"242"},{"cn":"口水鸡","eng":"Saliva Chicken","id":"348"},{"cn":"淄博烧烤","eng":"Zibo BBQ","id":"366"},{"cn":"菌菇炖乳鸽","eng":"Stewed Squab with Mushrooms","id":"174"},{"cn":"油泼辣子","eng":"Chili Oil","id":"200"},{"cn":"提拉米苏","eng":"Tiramisu","id":"195"},{"cn":"金菲士","eng":"Gin Fizz","id":"233"},{"cn":"瘦肉土豆片","eng":"Sliced Potatoes with Lean Meat","id":"300"},{"cn":"示例菜","eng":"Example Dish","id":"181"},{"cn":"葱烧海参","eng":"Braised Sea Cucumber with Scallion","id":"245"},{"cn":"巴基斯坦牛肉咖喱","eng":"Pakistani Beef Curry","id":"352"},{"cn":"炒滑蛋","eng":"Scrambled eggs","id":"224"},{"cn":"湖南家常红烧肉","eng":"Hunan-style Home-cooked Braised Pork","id":"306"},{"cn":"红烧肉","eng":"Simple Braised Pork","id":"327"},{"cn":"柱候牛腩","eng":"Zhu Hou Beef Brisket","id":"346"},{"cn":"莴笋叶煎饼","eng":"Lettuce Leaf Pancake","id":"205"},{"cn":"冬瓜酿肉","eng":"Stuffed Winter Melon","id":"303"},{"cn":"酱拌荞麦面","eng":"Sauce-mixed Buckwheat Noodles","id":"274"},{"cn":"蒜蓉虾","eng":"Garlic Shrimp","id":"258"},{"cn":"茭白炒肉","eng":"Stir-fried Water Bamboo Shoots with Pork","id":"321"},{"cn":"麻婆豆腐","eng":"Mapo Tofu","id":"309"},{"cn":"红烧猪蹄","eng":"Braised Pork Trotters","id":"334"},{"cn":"炒凉粉","eng":"Stir-fried Cool Jelly","id":"281"},{"cn":"奇异果菠菜特调","eng":"Kiwi Spinach Special Blend","id":"235"},{"cn":"空气炸锅照烧鸡饭","eng":"Teriyaki Chicken Rice with Air Fryer","id":"277"},{"cn":"小炒鸡肝","eng":"Stir-fried Chicken Liver","id":"322"},{"cn":"戚风蛋糕","eng":"Chiffon cake","id":"191"},{"cn":"温泉蛋","eng":"Soft-boiled egg","id":"77"},{"cn":"农家一碗香","eng":"A Farmhouse Special","id":"315"},{"cn":"玛格丽特饼干","eng":"Margaret cookies","id":"197"},{"cn":"百香果橙子特调","eng":"Passion Fruit Orange Blend","id":"244"},{"cn":"白灼菜心","eng":"Blanched Choy Sum","id":"228"},{"cn":"荔枝肉","eng":"Lychee Pork","id":"301"},{"cn":"鳊鱼炖豆腐","eng":"Braised Bream with Tofu","id":"253"},{"cn":"无骨鸡爪","eng":"Boneless Chicken Feet","id":"351"},{"cn":"荷兰豆炒腊肠","eng":"Stir-Fried Snow Peas with Chinese Sausage","id":"312"},{"cn":"酱排骨","eng":"Sauce Ribs","id":"350"},{"cn":"西葫芦炒鸡蛋","eng":"Stir-fried Zucchini with Eggs","id":"203"},{"cn":"菠菜炒鸡蛋","eng":"Spinach and Egg Stir-fry","id":"231"},{"cn":"小龙虾","eng":"crayfish","id":"247"},{"cn":"卤菜","eng":"Braised Dishes","id":"328"},{"cn":"微波炉腊肠煲仔饭","eng":"Microwave Chinese Sausage Claypot Rice","id":"288"},{"cn":"鲤鱼炖白菜","eng":"Braised Carp with Napa Cabbage","id":"251"},{"cn":"混合烤鱼","eng":"Grilled fish","id":"259"},{"cn":"干煸仔鸡","eng":"Dry-Fried Young Chicken","id":"314"},{"cn":"炒意大利面","eng":"Stir-fried Pasta","id":"290"},{"cn":"椒盐玉米","eng":"Salt and Pepper Corn","id":"218"},{"cn":"炒方便面","eng":"Fried Instant Noodles","id":"363"},{"cn":"凉拌鸡丝","eng":"Shredded Chicken Salad","id":"318"},{"cn":"蒜蓉空心菜","eng":"Garlic Stir-Fried Water Spinach","id":"226"},{"cn":"泰国手标红茶","eng":"Thai Hand-Brewed Black Tea","id":"238"},{"cn":"中式馅饼","eng":"Steamed Flower Roll","id":"93"},{"cn":"老妈蹄花","eng":"Mother&#x27;s Trotters","id":"339"},{"cn":"香菇滑鸡","eng":"Steamed Chicken with Mushrooms","id":"302"},{"cn":"干锅花菜","eng":"Dry Pot Cauliflower","id":"230"},{"cn":"披萨饼皮","eng":"Pizza dough","id":"270"},{"cn":"田螺酿","eng":"Snail Stuffed with Meat","id":"360"},{"cn":"意式肉酱面","eng":"Spaghetti Bolognese","id":"279"},{"cn":"广式萝卜牛腩","eng":"Cantonese-style Radish and Beef Brisket","id":"358"},{"cn":"雪花酥","eng":"Snowflake Crisp","id":"186"},{"cn":"咖啡椰奶冻","eng":"Coffee Coconut Pudding","id":"199"},{"cn":"醉排骨","eng":"Drunk Pork Ribs","id":"323"},{"cn":"猪皮冻","eng":"Pork skin jelly","id":"305"},{"cn":"青椒酿","eng":"Stuffed Green Peppers","id":"362"},{"cn":"回锅肉","eng":"Twice-cooked pork","id":"353"},{"cn":"菠萝咖啡特调","eng":"Pineapple Coffee Special","id":"236"},{"cn":"宫保鸡丁","eng":"Kung Pao Chicken","id":"299"},{"cn":"糖醋鲤鱼","eng":"Sweet and Sour Carp","id":"257"},{"cn":"朱雀汤","eng":"Zhuque Tang","id":"177"},{"cn":"香辣鸡爪煲","eng":"Spicy Chicken Feet Pot","id":"338"},{"cn":"洋葱炒鸡蛋","eng":"Scrambled Eggs with Onions","id":"223"},{"cn":"酱牛肉","eng":"Spiced Beef","id":"333"},{"cn":"柠檬水","eng":"Lemonade","id":"241"},{"cn":"蔗糖糖浆","eng":"Sucrose syrup","id":"202"},{"cn":"凉拌木耳","eng":"Cold Tossed Wood Ear Mushrooms","id":"208"},{"cn":"羊排焖面","eng":"Braised Lamb Chops with Noodles","id":"355"},{"cn":"黑椒牛柳","eng":"Black Pepper Beef Tenderloin","id":"330"},{"cn":"酒酿醪糟","eng":"Fermented Rice Wine","id":"232"},{"cn":"干煎阿根廷红虾","eng":"Pan-fried Argentine red shrimp","id":"250"},{"cn":"阳朔啤酒鱼","eng":"Yangshuo Beer Fish","id":"359"},{"cn":"陈皮排骨汤","eng":"Dried Tangerine Peel Pork Rib Soup","id":"12"},{"cn":"陕西油泼面","eng":"Shaanxi Oil-Splashed Noodles","id":"292"},{"cn":"徽派红烧肉","eng":"Hui-style Braised Pork","id":"329"},{"cn":"蚝油三鲜菇","eng":"Oyster Sauce with Three Delicacies Mushrooms","id":"211"},{"cn":"台式卤肉饭","eng":"Taiwanese Braised Pork Rice","id":"304"},{"cn":"空气炸锅羊排","eng":"Air Fryer Lamb Chops","id":"266"},{"cn":"小炒藕丁","eng":"Stir-fried Lotus Root Cubes","id":"229"},{"cn":"空气炸锅鸡翅中","eng":"Chicken Wings for Air Fryer","id":"267"},{"cn":"湘祁米夫鸭","eng":"Xiangqi Mifu Duck","id":"340"},{"cn":"昂刺鱼豆腐汤","eng":"Catfish and Tofu Soup","id":"178"},{"cn":"日式咖喱饭","eng":"Japanese Curry Rice","id":"276"},{"cn":"蒜香黄油虾","eng":"Garlic Butter Shrimp","id":"256"},{"cn":"油焖大虾","eng":"Braised Prawns","id":"255"},{"cn":"勾芡香菇汤","eng":"Starch-thickened Mushroom Soup","id":"172"},{"cn":"贵州辣子鸡","eng":"Guizhou Spicy Chicken","id":"343"},{"cn":"凉拌莴笋","eng":"Cold Tossed Celtuce","id":"222"},{"cn":"凉粉","eng":"Cold Starch Jelly","id":"286"},{"cn":"米饭","eng":"Rice steamer for cooking rice","id":"271"},{"cn":"尖叫牛蛙","eng":"Screaming Bullfrog","id":"336"},{"cn":"烙饼","eng":"pancake","id":"282"},{"cn":"茄子肉煎饼","eng":"Eggplant Meat Pancake","id":"273"},{"cn":"烤茄子","eng":"Grilled Eggplant","id":"210"},{"cn":"西红柿鸡蛋挂面","eng":"Tomato and Egg Noodles","id":"269"},{"cn":"电饭煲三文鱼炊饭","eng":"Rice Cooker Salmon Rice","id":"275"},{"cn":"啤酒鸭","eng":"Beer Duck","id":"325"},{"cn":"银耳莲子粥","eng":"White fungus and lotus seed porridge","id":"175"},{"cn":"芋泥雪媚娘","eng":"Mochi with Taro Paste","id":"192"},{"cn":"香煎翘嘴鱼","eng":"Pan-fried Culter alburnus","id":"252"},{"cn":"香干芹菜炒肉","eng":"Stir-fried Pork with Celery and Dried Tofu","id":"337"},{"cn":"红柚蛋糕","eng":"Red Grapefruit Cake","id":"182"},{"cn":"蛏抱蛋","eng":"Sheng Bao Dan","id":"261"},{"cn":"水煮牛肉","eng":"Boiled Beef in Chili Sauce","id":"320"},{"cn":"无厨师机蜂蜜面包","eng":"No-stand mixer honey bread","id":"184"},{"cn":"火腿饭团","eng":"Ham Rice Ball","id":"291"},{"cn":"豉汁蒸白鱔","eng":"Steamed Eel with Black Bean Sauce","id":"349"},{"cn":"速冻汤圆","eng":"Frozen Tangyuan","id":"264"},{"cn":"酸奶意式奶冻","eng":"Yogurt Italian Panna Cotta","id":"187"},{"cn":"炸薯条","eng":"French fries","id":"265"},{"cn":"排骨苦瓜汤","eng":"Pork Rib and Bitter Melon Soup","id":"173"},{"cn":"虎皮青椒","eng":"Stir-fried Green Peppers with Tiger Skin","id":"207"},{"cn":"蒸水蛋","eng":"Steamed Egg Custard","id":"213"},{"cn":"羊肉汤","eng":"Lamb Soup","id":"171"},{"cn":"英式司康","eng":"British scone","id":"194"},{"cn":"桂林十八酿","eng":"Guilin Eighteen Stews","id":"361"},{"cn":"草莓冰淇淋","eng":"Strawberry ice cream","id":"188"},{"cn":"魔芋蛋糕","eng":"Konjac cake","id":"196"},{"cn":"拔丝土豆","eng":"Sweet and Sour Potato","id":"217"},{"cn":"耙耙柑茶","eng":"Papa Gan Tea","id":"237"},{"cn":"奶酪培根通心粉","eng":"Bacon Cheese Macaroni","id":"297"},{"cn":"豆豉鲮鱼油麦菜","eng":"Dace Fish with Fermented Black Beans and Indian Lettuce","id":"296"},{"cn":"小炒黄牛肉","eng":"Stir-Fried Beef","id":"298"},{"cn":"白灼虾","eng":"Boiled Shrimp","id":"249"},{"cn":"日式肥牛丼饭","eng":"Japanese-style Beef Bowl","id":"278"},{"cn":"新疆大盘鸡","eng":"Xinjiang Big Plate Chicken","id":"332"},{"cn":"黔式腊肠娃娃菜","eng":"Qian-style Sausage with Baby Chinese Cabbage","id":"324"},{"cn":"鲣鱼海苔玉米饭","eng":"Bonito Nori Corn Rice","id":"283"},{"cn":"西红柿豆腐汤羹","eng":"Tomato and Tofu Soup","id":"219"},{"cn":"烤箱版巴斯克芝士蛋糕","eng":"Oven-baked Basque Cheesecake","id":"183"},{"cn":"草莓酱","eng":"Strawberry jam","id":"201"},{"cn":"话梅煮毛豆","eng":"Braised edamame with preserved plums","id":"227"},{"cn":"砂糖椰子冰沙","eng":"Coconut Sugar Slushie","id":"243"},{"cn":"梅菜扣肉","eng":"Braised Pork with Preserved Mustard Greens","id":"345"},{"cn":"金汤力","eng":"Gin and Tonic","id":"239"},{"cn":"清蒸鳜鱼","eng":"Steamed Mandarin Fish","id":"354"},{"cn":"澳门湿版免治牛肉饭","eng":"Macau Wet Plate Instant Beef Rice","id":"367"},{"cn":"烧饼","eng":"Sesame Flatbread","id":"287"},{"cn":"炸鲜奶","eng":"Fried Milk","id":"193"},{"cn":"糖拌西红柿","eng":"Tomatoes with sugar","id":"204"},{"cn":"芥末罗氏虾","eng":"Mustard Prawn","id":"313"},{"cn":"老友猪肉粉","eng":"Old Friend Pork Rice Noodles","id":"284"},{"cn":"清蒸鲈鱼","eng":"Steamed Sea Bass","id":"246"},{"cn":"榄菜肉末四季豆","eng":"Stir-fried Green Beans with Preserved Mustard Greens and Minced Pork","id":"221"},{"cn":"老式锅包肉","eng":"Traditional Double Cooked Pork Slices","id":"308"},{"cn":"河南蒸面条","eng":"Henan Steamed Noodles","id":"295"},{"cn":"烤蛋挞","eng":"Baked Egg Tart","id":"185"},{"cn":"包菜炒鸡蛋粉丝","eng":"Stir-fried Cabbage with Eggs and Glass Noodles","id":"225"},{"cn":"扬州炒饭","eng":"Yangzhou Fried Rice","id":"280"},{"cn":"乾隆白菜","eng":"Qianlong Cabbage","id":"365"},{"cn":"手撕包菜","eng":"Hand-Torn Cabbage","id":"220"},{"cn":"红烧冬瓜","eng":"Braised Winter Melon","id":"215"},{"cn":"懒人蛋挞","eng":"Lazy Egg Tart","id":"268"},{"cn":"基础牛奶面包","eng":"Basic Milk Bread","id":"289"},{"cn":"地三鲜","eng":"Di San Xian","id":"364"},{"cn":"苏格兰蛋","eng":"Scotch egg","id":"263"},{"cn":"芹菜拌茶树菇","eng":"Celery with Tea Tree Mushrooms","id":"216"},{"cn":"上汤娃娃菜","eng":"Baby Chinese Cabbage in Broth","id":"209"},{"cn":"西红柿土豆炖牛肉","eng":"Beef Stew with Tomatoes and Potatoes","id":"311"},{"cn":"姜炒鸡","eng":"Stir-fried Chicken with Ginger","id":"317"},{"cn":"反沙芋头","eng":"Crispy Sweet Potato","id":"189"},{"cn":"糖醋排骨","eng":"Sweet and Sour Pork Ribs","id":"310"},{"cn":"凉皮","eng":"Liangpi","id":"97"},{"cn":"葱油","eng":"Scallion Oil","id":"18"},{"cn":"快手肉丸汤","eng":"Quick-Boiled Meatball Soup","id":"7"},{"cn":"太阳蛋","eng":"Sunny-side-up egg","id":"76"},{"cn":"清蒸生蚝","eng":"Steamed Oysters","id":"68"},{"cn":"油酥","eng":"Flaky Pastry","id":"15"},{"cn":"蒜香酱油","eng":"Garlic Soy Sauce","id":"19"},{"cn":"韩式麻药蛋","eng":"Korean narcotic eggs","id":"82"},{"cn":"煎饺","eng":"Pan-fried dumplings","id":"83"},{"cn":"微波炉水波蛋","eng":"Microwave Poached Egg","id":"91"},{"cn":"B-52轰炸机","eng":"B-52 bomber","id":"57"},{"cn":"西红柿蛋汤","eng":"Tomato Egg Soup","id":"9"},{"cn":"微波炉蒸蛋","eng":"Steamed Egg in Microwave","id":"90"},{"cn":"红烧鱼头","eng":"Braised Fish Head","id":"69"},{"cn":"微波炉蒸水蛋","eng":"Steamed Egg Custard in Microwave","id":"214"},{"cn":"小米粥","eng":"Millet porridge","id":"5"},{"cn":"茶叶蛋","eng":"Tea Egg","id":"74"},{"cn":"皮蛋瘦肉粥","eng":"Century egg and lean pork congee","id":"8"},{"cn":"完美煮蛋","eng":"Perfect Boiled Egg","id":"72"},{"cn":"胡萝卜蛋糕","eng":"Carrot Cake","id":"14"},{"cn":"印度奶茶","eng":"Indian milk tea","id":"54"},{"cn":"简易版炒糖色","eng":"Easy Caramelizing Sugar","id":"16"},{"cn":"意大利香肠北非蛋","eng":"Italian Sausage Shakshuka","id":"75"},{"cn":"美式炒蛋","eng":"American-style scrambled eggs","id":"79"},{"cn":"黄瓜皮蛋汤","eng":"Cucumber Century Egg Soup","id":"1"},{"cn":"罗宋汤","eng":"Borscht","id":"4"},{"cn":"炸串酱料","eng":"Fried Skewer Sauce","id":"17"},{"cn":"紫菜蛋花汤","eng":"Seaweed and Egg Drop Soup","id":"6"},{"cn":"金枪鱼三明治","eng":"Tuna Sandwich","id":"78"},{"cn":"速冻水饺","eng":"Frozen dumplings","id":"96"},{"cn":"奶油蘑菇汤","eng":"Cream of Mushroom Soup","id":"13"},{"cn":"腊八粥","eng":"Laba porridge","id":"3"},{"cn":"牛油果拉西","eng":"Avocado Lassi","id":"60"},{"cn":"火锅底料","eng":"Beef Hot Pot Base","id":"95"},{"cn":"微波葱姜黑鳕鱼","eng":"Miso Scallion Black Cod","id":"65"},{"cn":"奶茶","eng":"Milk tea","id":"55"},{"cn":"可乐桶","eng":"Cola Bucket","id":"58"},{"cn":"粗粒小麦粉意面","eng":"Semolina pasta","id":"98"},{"cn":"手抓饼","eng":"Shouzhua Bing","id":"89"},{"cn":"水煮鱼","eng":"Boiled Fish","id":"71"},{"cn":"金针菇汤","eng":"Enoki mushroom soup","id":"10"},{"cn":"长岛冰茶","eng":"Long Island Iced Tea","id":"52"},{"cn":"冬瓜茶","eng":"Winter Melon Tea","id":"61"},{"cn":"吐司果酱","eng":"Toast Jam","id":"81"},{"cn":"微波炉蛋糕","eng":"Microwave Cake","id":"87"},{"cn":"桂圆红枣粥","eng":"Longan and Red Date Porridge","id":"88"},{"cn":"空气炸锅吐司","eng":"Air Fryer Toast","id":"86"},{"cn":"糖醋汁","eng":"Sweet and Sour Sauce","id":"20"},{"cn":"燕麦鸡蛋饼","eng":"Oatmeal and Egg Pancake","id":"94"},{"cn":"白粥","eng":"Rice Porridge","id":"2"},{"cn":"西红柿牛肉蛋花汤","eng":"Tomato Beef Egg Drop Soup","id":"11"},{"cn":"速冻馄饨","eng":"Frozen Wonton","id":"99"},{"cn":"咖喱炒蟹","eng":"Curry Crab Stir-fry","id":"70"},{"cn":"煮玉米","eng":"Boiled Corn","id":"92"},{"cn":"莫吉托","eng":"Mojito","id":"56"},{"cn":"牛奶燕麦","eng":"Milk Oatmeal","id":"80"},{"cn":"炒年糕","eng":"Egg-fried Rice Cakes","id":"73"},{"cn":"咖喱牛肉","eng":"Curry Beef","id":"316"},{"cn":"杨枝甘露","eng":"Mango Pomelo Sago","id":"59"},{"cn":"红烧鱼","eng":"Braised Fish","id":"64"},{"cn":"黄油煎虾","eng":"Shrimp sautéed in butter","id":"0"},{"cn":"芥末黄油罗氏虾","eng":"Mustard Butter Rosé Shrimp","id":"0"},{"cn":"响油鳝丝","eng":"Sautéed Eel Shreds with Aromatics","id":"0"}];
+var n = R.length;
+var recipeNames = R.map(function(x) { return x.cn; });
+var recipeIdMap = {};
+for (var i = 0; i < n; i++) recipeIdMap[R[i].cn] = R[i].id;
+
+var COLORS = [
+  "#FF6B6B","#4ECDC4","#45B7D1","#96CEB4","#FFE66D","#DDA0DD",
+  "#98D8C8","#F7DC6F","#BB8FCE","#85C1E9","#F8C471","#82E0AA",
+  "#F1948A","#73C6B6","#E59866","#A3E4D7","#FAD7A0","#D7BDE2",
+  "#A9CCE3","#AED6F1","#F9E79F","#ABEBC6","#F5B7B1","#A9DFBF",
+  "#FADBD8","#D2B4DE","#A3C1AD","#F0B27A","#AEB6BF","#D5DBDB"
+];
+function getColor(i) { return COLORS[i % COLORS.length]; }
+
+var canvas = document.getElementById("cv");
+var ctx = canvas.getContext("2d");
+var currentAngle = 0;
+var isSpinning = false;
+var historyList = [];
+
+function resizeCanvas() {
+  var rect = canvas.getBoundingClientRect();
+  var dpr = window.devicePixelRatio || 1;
+  var size = Math.round(rect.width * dpr);
+  if (canvas.width !== size || canvas.height !== size) {
+    canvas.width = size;
+    canvas.height = size;
+    drawWheel();
+  }
+}
+
+function drawWheel() {
+  var w = canvas.width;
+  var h = canvas.height;
+  var cx = w / 2;
+  var cy = h / 2;
+  var r = Math.min(w, h) / 2 - 16;
+  var sliceAngle = 2 * Math.PI / n;
+
+  ctx.clearRect(0, 0, w, h);
+
+  for (var i = 0; i < n; i++) {
+    var start = currentAngle + i * sliceAngle;
+    var end = start + sliceAngle;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, start, end);
+    ctx.closePath();
+    ctx.fillStyle = getColor(i);
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(255,255,255,0.2)";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    var mid = start + sliceAngle / 2;
+    var textR = r * 0.6;
+    var tx = cx + Math.cos(mid) * textR;
+    var ty = cy + Math.sin(mid) * textR;
+
+    ctx.save();
+    ctx.translate(tx, ty);
+    ctx.rotate(mid);
+
+    var fontSize = Math.round(r * 0.055);
+    ctx.font = "bold " + fontSize + "px PingFang SC,Microsoft YaHei,sans-serif";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(255,255,255,0.92)";
+
+    var label = R[i].cn;
+    var maxWidth = r * 0.65;
+    while (ctx.measureText(label).width > maxWidth && label.length > 1) {
+      label = label.slice(0, -1);
+    }
+    ctx.fillText(label, r * 0.26, 0);
+    ctx.restore();
+  }
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+  ctx.strokeStyle = "rgba(255,255,255,0.15)";
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, 6, 0, 2 * Math.PI);
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.fill();
+}
+
+function getSelected() {
+  var a = ((-Math.PI / 2 - currentAngle) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+  var idx = Math.floor(a / (2 * Math.PI / n)) % n;
+  return { idx: idx, name: recipeNames[idx], id: recipeIdMap[recipeNames[idx]] };
+}
+
+function addHistory(item) {
+  var now = new Date();
+  var time = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+  historyList.unshift({ name: item.name, id: item.id, time: time });
+  renderHistory();
+}
+
+function renderHistory() {
+  var el = document.getElementById("hl");
+  if (historyList.length === 0) {
+    el.innerHTML = "<div class='history-empty'>还没有记录，转一转吧 🎲</div>";
+    return;
+  }
+  var html = "";
+  for (var i = 0; i < historyList.length; i++) {
+    var item = historyList[i];
+    var idx = recipeNames.indexOf(item.name);
+    var color = idx >= 0 ? getColor(idx) : "#fff";
+    var url = "https://howtocook.aiursoft.com/Recipes/Detail/" + item.id;
+    html += "<a class='history-item' href='" + url + "' target='_blank'>";
+    html += "<span class='history-idx'>#" + (i + 1) + "</span>";
+    html += "<span class='history-name' style='color:" + color + "'>" + item.name + "</span>";
+    html += "<span class='history-time'>" + item.time + "</span>";
+    html += "<span class='history-link'>🔗</span>";
+    html += "</a>";
+  }
+  el.innerHTML = html;
+}
+
+function showModal(item) {
+  document.getElementById("modalName").textContent = item.name;
+  document.getElementById("modalLink").href = "https://howtocook.aiursoft.com/Recipes/Detail/" + item.id;
+  var foods = ["🍲","🍝","🍕","🍜","🍪","🍫","🍨","🍤","🍳","🍯","🍰","🍱","🍞","🍙","🍟","🍵","🍥","🍣","🍟","🍤","🍗","🍖","🍔","🍭"];
+  document.getElementById("modalEmoji").textContent = foods[Math.floor(Math.random() * foods.length)];
+  document.getElementById("modal").classList.add("show");
+}
+
+function closeModal() {
+  document.getElementById("modal").classList.remove("show");
+}
+
+function startSpin() {
+  if (isSpinning) return;
+  closeModal();
+  isSpinning = true;
+  document.getElementById("ab").disabled = true;
+  document.getElementById("rn").className = "result-name";
+  document.getElementById("rn").textContent = "🎹 转动中...";
+
+  var targetIdx = Math.floor(Math.random() * n);
+  var extraTurns = 5 + Math.random() * 4;
+  var targetAngle = currentAngle + extraTurns * 2 * Math.PI - (targetIdx * (2 * Math.PI / n) + Math.PI / 2);
+  var startAngle = currentAngle;
+  var totalDelta = targetAngle - startAngle;
+  var duration = 3500 + Math.random() * 1500;
+  var startTime = performance.now();
+
+  function easeOut(t) {
+    return 1 - Math.pow(1 - t, 3.5);
+  }
+
+  function animate(now) {
+    var progress = Math.min((now - startTime) / duration, 1);
+    currentAngle = startAngle + totalDelta * easeOut(progress);
+    drawWheel();
+
+    if (progress < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      isSpinning = false;
+      document.getElementById("ab").disabled = false;
+      var result = getSelected();
+      document.getElementById("rn").textContent = result.name;
+      document.getElementById("rn").className = "result-name pop";
+      addHistory(result);
+      launchConfetti();
+      setTimeout(function() { showModal(result); }, 700);
+    }
+  }
+
+  requestAnimationFrame(animate);
+}
+
+function launchConfetti() {
+  var confettiColors = ["#f093fb","#f5576c","#4facfe","#43e97b","#fa709a","#fee140","#a18cd1","#ff9a9e","#ff6b6b","#48dbfb"];
+  for (var i = 0; i < 60; i++) {
+    var el = document.createElement("div");
+    var cw = 4 + Math.random() * 10;
+    var ch = cw * (0.3 + Math.random() * 0.7);
+    el.style.cssText = [
+      "position:fixed",
+      "width:" + cw + "px",
+      "height:" + ch + "px",
+      "background:" + confettiColors[Math.floor(Math.random() * confettiColors.length)],
+      "border-radius:" + (Math.random() > 0.5 ? "50%" : "2px"),
+      "left:" + (Math.random() * 100) + "vw",
+      "top:-20px",
+      "pointer-events:none",
+      "z-index:9999",
+      "opacity:" + (0.7 + Math.random() * 0.3),
+      "transform:rotate(" + (Math.random() * 360) + "deg)",
+      "animation:confettiFall " + (2 + Math.random() * 2.5) + "s ease-out forwards",
+      "animation-delay:" + (Math.random() * 0.5) + "s"
+    ].join(";") + ";";
+    document.body.appendChild(el);
+    setTimeout(function() { el.remove(); }, 5000);
+  }
+}
+
+document.getElementById("ab").addEventListener("click", startSpin);
+document.getElementById("sb").addEventListener("click", startSpin);
+document.getElementById("modalSpinAgain").addEventListener("click", startSpin);
+document.getElementById("closeBtn").addEventListener("click", closeModal);
+document.getElementById("modal").addEventListener("click", function(e) { if (e.target === this) closeModal(); });
+document.getElementById("hclr").addEventListener("click", function() { historyList = []; renderHistory(); });
+
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+document.getElementById("badge").textContent = n + " 道菜";
+</script>
+</body>
+</html>
