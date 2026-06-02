@@ -345,11 +345,11 @@ function startSpin() {
   document.getElementById("rn").textContent = "🎹 转动中...";
 
   var targetIdx = Math.floor(Math.random() * n);
-  var extraTurns = 5 + Math.random() * 4;
+  var extraTurns = 3 + Math.random() * 3;
   var targetAngle = currentAngle + extraTurns * 2 * Math.PI - (targetIdx * (2 * Math.PI / n) + Math.PI / 2);
   var startAngle = currentAngle;
   var totalDelta = targetAngle - startAngle;
-  var duration = 3500 + Math.random() * 1500;
+  var duration = 1500 + Math.random() * 1500;
   var startTime = performance.now();
 
   function easeOut(t) {
